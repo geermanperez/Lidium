@@ -1,0 +1,1 @@
+-- Character reset migration. It preserves the accounts table.

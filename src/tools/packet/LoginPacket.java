@@ -79,7 +79,7 @@ public class LoginPacket {
         mplew.writeLong(PacketHelper.getTime(System.currentTimeMillis())); //really create date
         mplew.writeInt(4); // Remove the "Select the world you want to play in" since it doesn't fit inside the loginscreen
         mplew.write(1); //1 = pin disabled, 0 = pin enabled
-        mplew.write(client.getSecondPassword() == null ? 0 : (client.getSecondPassword().equals("") ? 2 : 1)); //2 = no pic at all
+        mplew.write(2); // PIC/second password temporarily disabled for every account.
         mplew.writeLong(Randomizer.nextLong());
 
         return mplew.getPacket();
@@ -286,7 +286,7 @@ public class LoginPacket {
         for (final MapleCharacter chr : chars) {
             addCharEntry(mplew, chr, !chr.isGM() && chr.getLevel() >= 30, false);
         }
-        mplew.write(secondpw != null && secondpw.length() > 0 ? 1 : (secondpw != null && secondpw.length() <= 0 ? 2 : 0)); // second pw request
+        mplew.write(2); // Never request a PIC/second password at character selection.
         mplew.write(0);
         mplew.writeInt(charslots);
         mplew.writeInt(0);
@@ -347,7 +347,7 @@ public class LoginPacket {
         for (MapleCharacter chr : chars) {
             addCharEntry(mplew, chr, true, true);
         }
-        mplew.write(pic == null ? 0 : (pic.equals("") ? 2 : 1)); //writing 2 here disables PIC		
+        mplew.write(2); // Never request a PIC/second password in the all-character view.
         return mplew.getPacket();
     }
 

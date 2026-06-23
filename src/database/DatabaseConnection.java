@@ -82,7 +82,24 @@ public class DatabaseConnection {
     public static final int NO_GENERATED_KEYS = 2;
 
     public static final Connection getConnection() {
-        return con.get();
+        Connection connection = con.get();
+        try {
+            if (connection == null || connection.isClosed() || !connection.isValid(2)) {
+                if (connection != null) {
+                    try {
+                        connection.close();
+                    } catch (SQLException ignored) {
+                        // The connection is already unusable; replace it below.
+                    }
+                }
+                con.remove();
+                connection = con.get();
+            }
+        } catch (SQLException e) {
+            con.remove();
+            connection = con.get();
+        }
+        return connection;
     }
 
     public static final void closeAll() throws SQLException {

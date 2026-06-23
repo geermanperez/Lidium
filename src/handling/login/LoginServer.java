@@ -41,6 +41,7 @@ import tools.Pair;
 
 public class LoginServer {
 
+    // The v111 client connects to the conventional login port.
     public static final int PORT = 8484;
     private static InetSocketAddress InetSocketadd;
     private static IoAcceptor acceptor;
@@ -99,7 +100,10 @@ public class LoginServer {
         cfg.getFilterChain().addLast("codec", new ProtocolCodecFilter(new MapleCodecFactory()));
 
         try {
-            InetSocketadd = new InetSocketAddress(PORT);
+            // Keep the server-side listener isolated from the client relay.
+            // The v111 TEST client connects to 127.0.0.2:8484, which relays
+            // to this loopback-only listener at 127.0.0.1:8484.
+            InetSocketadd = new InetSocketAddress("127.0.0.1", PORT);
             acceptor.bind(InetSocketadd, new MapleServerHandler(-1, false), cfg);
             System.out.println("Listening on port " + PORT + ".");
         } catch (IOException e) {

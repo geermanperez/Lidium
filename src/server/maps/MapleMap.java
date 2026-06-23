@@ -1633,7 +1633,7 @@ public final class MapleMap {
             c.getSession().write(CField.dropItemFromMapObject(mdrop, dropper.getTruePosition(), droppos, (byte) 1));
         });
         if (!everlast) {
-            mdrop.registerExpire(120000);
+            mdrop.registerExpire(180000);
             if (droptype == 0 || droptype == 1) {
                 mdrop.registerFFA(30000);
             }
@@ -1647,7 +1647,7 @@ public final class MapleMap {
             c.getSession().write(CField.dropItemFromMapObject(mdrop, dropper.getTruePosition(), position, (byte) 1));
         });
 
-        mdrop.registerExpire(120000);
+        mdrop.registerExpire(180000);
         if (droptype == 0 || droptype == 1) {
             mdrop.registerFFA(30000);
         }
@@ -1663,7 +1663,7 @@ public final class MapleMap {
         });
 //	broadcastMessage(CField.dropItemFromMapObject(mdrop, mob.getTruePosition(), dropPos, (byte) 0));
 
-        mdrop.registerExpire(120000);
+        mdrop.registerExpire(180000);
         if (droptype == 0 || droptype == 1) {
             mdrop.registerFFA(30000);
         }
@@ -1715,7 +1715,7 @@ public final class MapleMap {
         });
         broadcastMessage(CField.dropItemFromMapObject(mdrop, pos, pos, (byte) 0));
         if (itemid / 10000 != 291) {
-            mdrop.registerExpire(120000);
+            mdrop.registerExpire(180000);
         }
     }
 
@@ -1729,7 +1729,7 @@ public final class MapleMap {
         broadcastMessage(CField.dropItemFromMapObject(drop, dropper.getTruePosition(), droppos, (byte) 0));
 
         if (!everlast) {
-            drop.registerExpire(120000);
+            drop.registerExpire(180000);
             activateItemReactors(drop, owner.getClient());
         }
     }

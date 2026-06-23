@@ -94,6 +94,7 @@ public class CharacterTransfer implements Externalizable {
     }
 
     public CharacterTransfer(final MapleCharacter chr) {
+        this();
         this.characterid = chr.getId();
         this.accountid = chr.getAccountID();
         this.accountname = chr.getClient().getAccountName();
@@ -156,7 +157,7 @@ public class CharacterTransfer implements Externalizable {
         this.junior2 = chr.getJunior2();
         this.battleshipHP = chr.currentBattleshipHP();
         this.gachexp = chr.getGachExp();
-        this.boxed = chr.getBoxed();
+        // Sistema boxed eliminado: se conserva la lista vacía inicializada por el constructor.
         this.familiars = chr.getFamiliars();
         chr.getCheatTracker().dispose();
         this.anticheat = chr.getCheatTracker();
@@ -234,7 +235,7 @@ public class CharacterTransfer implements Externalizable {
         this.mount_Fatigue = mount.getFatigue();
         this.mount_level = mount.getLevel();
         this.mount_exp = mount.getExp();
-        this.battlers = chr.getBattlers();
+        this.battlers = null;
         TranferTime = System.currentTimeMillis();
     }
 

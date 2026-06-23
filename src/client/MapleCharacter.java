@@ -539,9 +539,9 @@ public class MapleCharacter extends AnimatedMapleMapObject implements Serializab
         ret.storage = (MapleStorage) ct.storage;
         ret.cs = (CashShop) ct.cs;
         client.setAccountName(ct.accountname);
-        ret.NxPrepaid = ct.NxPrepaid;
-        ret.maplepoints = ct.MaplePoints;
-        ret.NXCredit = ct.NxCredit;
+        ret.NxPrepaid = ct.nxPrepaid;
+        ret.maplepoints = ct.maplePoints;
+        ret.NXCredit = ct.nxCredit;
         ret.numClones = ct.clonez;
         ret.imps = ct.imps;
         ret.anticheat = (CheatTracker) ct.anticheat;
@@ -946,7 +946,7 @@ public class MapleCharacter extends AnimatedMapleMapObject implements Serializab
                 rs.close();
                 ps.close();
 
-                ps = con.prepareStatement("SELECT `itemId` FROM extendedSlots WHERE characterid = ?");
+                ps = con.prepareStatement("SELECT `itemId` FROM extendedslots WHERE characterid = ?");
                 ps.setInt(1, charid);
                 rs = ps.executeQuery();
                 while (rs.next()) {
@@ -1595,10 +1595,10 @@ public class MapleCharacter extends AnimatedMapleMapObject implements Serializab
                 }
             }
             if (changed_extendedSlots) {
-                deleteWhereCharacterId(con, "DELETE FROM extendedSlots WHERE characterid = ?");
+                deleteWhereCharacterId(con, "DELETE FROM extendedslots WHERE characterid = ?");
                 for (int i : extendedSlots) {
                     if (getInventory(MapleInventoryType.ETC).findById(i) != null) { //just in case
-                        ps = con.prepareStatement("INSERT INTO extendedSlots(characterid, itemId) VALUES(?, ?) ");
+                        ps = con.prepareStatement("INSERT INTO extendedslots(characterid, itemId) VALUES(?, ?) ");
                         ps.setInt(1, getId());
                         ps.setInt(2, i);
                         ps.execute();

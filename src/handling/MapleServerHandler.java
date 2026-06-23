@@ -294,6 +294,8 @@ public class MapleServerHandler extends IoHandlerAdapter implements MapleServerH
     public void sessionOpened(final IoSession session) throws Exception {
         // Start of IP checking
         final String address = session.getRemoteAddress().toString().split(":")[0];
+        System.out.println("[DEBUG HANDSHAKE] Conexion recibida desde " + session.getRemoteAddress()
+                + " channel=" + channel + " cashshop=" + cs);
 
         if (BlockedIP.contains(address)) {
             session.close();
@@ -358,6 +360,10 @@ public class MapleServerHandler extends IoHandlerAdapter implements MapleServerH
         session.setAttribute(MaplePacketDecoder.DECODER_STATE_KEY, decoderState);
 
         session.write(LoginPacket.getHello(ServerConstants.MAPLE_VERSION, ivSend, ivRecv));
+        System.out.println("[DEBUG HANDSHAKE] Hello enviado: version="
+                + ServerConstants.MAPLE_VERSION
+                + " patch=" + ServerConstants.MAPLE_PATCH
+                + " hacia=" + session.getRemoteAddress());
         //System.out.println("GETHELLO SENT TO " + address);
         session.setAttribute(MapleClient.CLIENT_KEY, client);
         session.setIdleTime(IdleStatus.READER_IDLE, 60);
@@ -560,7 +566,14 @@ public class MapleServerHandler extends IoHandlerAdapter implements MapleServerH
                 CharLoginHandler.ServerListRequest(c);
                 break;
             case CLIENT_HELLO:
-                if (slea.readByte() != 8 || slea.readShort() != ServerConstants.MAPLE_VERSION || !String.valueOf(slea.readShort()).equals(ServerConstants.MAPLE_PATCH)) {
+                final byte clientLocale = slea.readByte();
+                final short clientVersion = slea.readShort();
+                final short clientPatch = slea.readShort();
+                System.out.println("[DEBUG HANDSHAKE] CLIENT_HELLO recibido: locale="
+                        + clientLocale + " version=" + clientVersion + " patch=" + clientPatch);
+                if (clientLocale != 8 || clientVersion != ServerConstants.MAPLE_VERSION || !String.valueOf(clientPatch).equals(ServerConstants.MAPLE_PATCH)) {
+                    System.out.println("[DEBUG HANDSHAKE] CLIENT_HELLO rechazado; esperado: locale=8 version="
+                            + ServerConstants.MAPLE_VERSION + " patch=" + ServerConstants.MAPLE_PATCH);
                     c.getSession().close();
                 }
                 break;
