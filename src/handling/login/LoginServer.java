@@ -42,7 +42,7 @@ import tools.Pair;
 public class LoginServer {
 
     // The v111 client connects to the conventional login port.
-    public static final int PORT = 8484;
+    public static final int PORT = 9484;
     private static InetSocketAddress InetSocketadd;
     private static IoAcceptor acceptor;
     private static Map<Integer, Integer> load = new HashMap<Integer, Integer>();
@@ -185,3 +185,4 @@ public class LoginServer {
         finishedShutdown = false;
     }
 }
+
