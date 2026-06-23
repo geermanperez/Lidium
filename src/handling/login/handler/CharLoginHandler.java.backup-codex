@@ -32,7 +32,6 @@ import client.SkillEntry;
 import client.inventory.MapleInventory;
 import client.inventory.MapleInventoryType;
 import constants.GameConstants;
-import constants.ServerConstants;
 import client.SkillFactory;
 import handling.channel.ChannelServer;
 import handling.login.LoginInformationProvider;
@@ -50,7 +49,6 @@ import tools.packet.CField;
 import tools.packet.LoginPacket;
 import tools.data.LittleEndianAccessor;
 import tools.packet.PacketHelper;
-import tools.HexTool;
 
 public class CharLoginHandler {
 
@@ -60,33 +58,6 @@ public class CharLoginHandler {
             return true;
         }
         return false;
-    }
-
-    private static void logCharacterSelectionDebug(final String handler, final MapleClient c, final int charId,
-            final boolean haspic, final long bytesAtEntry, final boolean loggedIn, final boolean loginFailed,
-            final boolean loginAuth, final ChannelServer channelServer) {
-        final int redirectPort = channelServer == null ? -1 : Integer.parseInt(channelServer.getIP().split(":")[1]);
-        final String redirectIP = c.getTempIP().length() > 0 ? c.getTempIP() : HexTool.toString(ServerConstants.Gateway_IP);
-
-        System.out.println("[CHAR LOGIN DEBUG] handler=" + handler);
-        System.out.println("[CHAR LOGIN DEBUG] charId=" + charId + " accountId=" + c.getAccID());
-        System.out.println("[CHAR LOGIN DEBUG] loggedIn=" + loggedIn);
-        System.out.println("[CHAR LOGIN DEBUG] loginFailCount=" + loginFailed + " loginAttempt=" + c.loginAttempt);
-        System.out.println("[CHAR LOGIN DEBUG] loginAuth=" + loginAuth);
-        System.out.println("[CHAR LOGIN DEBUG] channel=" + c.getChannel());
-        System.out.println("[CHAR LOGIN DEBUG] world=" + c.getWorld());
-        System.out.println("[CHAR LOGIN DEBUG] channelInstance=" + (channelServer != null));
-        System.out.println("[CHAR LOGIN DEBUG] secondPassword=" + (c.getSecondPassword() == null ? "null" : "<set>"));
-        System.out.println("[CHAR LOGIN DEBUG] haspic=" + haspic);
-        System.out.println("[CHAR LOGIN DEBUG] sessionIP=" + c.getSessionIPAddress());
-        System.out.println("[CHAR LOGIN DEBUG] tempIP=" + c.getTempIP());
-        System.out.println("[CHAR LOGIN DEBUG] redirectIP=" + redirectIP);
-        System.out.println("[CHAR LOGIN DEBUG] redirectPort=" + redirectPort);
-        System.out.println("[CHAR LOGIN DEBUG] bytesAvailableAtEntry=" + bytesAtEntry);
-    }
-
-    private static void logCharacterSelectionClose(final String handler, final String reason) {
-        System.out.println("[CHAR LOGIN DEBUG] handler=" + handler + " action=close reason=" + reason);
     }
 
     public static final void login(final LittleEndianAccessor slea, final MapleClient c) {
@@ -492,15 +463,6 @@ public class CharLoginHandler {
     }
 
     public static final void Character_WithoutSecondPassword(final LittleEndianAccessor slea, final MapleClient c, final boolean haspic, final boolean view) {
-        final String handler = "Character_WithoutSecondPassword";
-        final long bytesAtEntry = slea.available();
-        System.out.println("[CHAR LOGIN DEBUG] handler=" + handler + " action=received bytesAvailable="
-                + bytesAtEntry + " haspic=" + haspic + " view=" + view);
-        if (bytesAtEntry < 6) {
-            logCharacterSelectionClose(handler, "insufficient packet bytes before character id: " + bytesAtEntry);
-            c.getSession().close();
-            return;
-        }
         slea.readByte(); // 1?
         slea.readByte(); // 1?
         final int charId = slea.readInt();
@@ -509,18 +471,7 @@ public class CharLoginHandler {
             c.setWorld(slea.readInt());
         }
         final String currentpw = c.getSecondPassword();
-        final boolean loggedIn = c.isLoggedIn();
-        final boolean loginFailed = loginFailCount(c);
-        final boolean loginAuth = c.login_Auth(charId);
-        final ChannelServer channelServer = ChannelServer.getInstance(c.getChannel());
-        logCharacterSelectionDebug(handler, c, charId, haspic, bytesAtEntry, loggedIn, loginFailed, loginAuth, channelServer);
-        if (!loggedIn || loginFailed || !loginAuth || channelServer == null || c.getWorld() != 0) { // TODOO: MULTI WORLDS
-            final String reason = !loggedIn ? "isLoggedIn=false"
-                    : loginFailed ? "loginFailCount=true"
-                    : !loginAuth ? "login_Auth=false"
-                    : channelServer == null ? "ChannelServer.getInstance(channel)=null"
-                    : "world!=0";
-            logCharacterSelectionClose(handler, reason);
+        if (!c.isLoggedIn() || loginFailCount(c) || !c.login_Auth(charId) || ChannelServer.getInstance(c.getChannel()) == null || c.getWorld() != 0) { // TODOO: MULTI WORLDS
             c.getSession().close();
             return;
         }
@@ -546,39 +497,17 @@ public class CharLoginHandler {
         final String s = c.getSessionIPAddress();
         LoginServer.putLoginAuth(charId, s.substring(s.indexOf('/') + 1, s.length()), c.getTempIP());
         c.updateLoginState(MapleClient.LOGIN_SERVER_TRANSITION, s);
-        final byte[] serverIpPacket = CField.getServerIP(c, Integer.parseInt(channelServer.getIP().split(":")[1]), charId);
-        System.out.println("[CHAR LOGIN DEBUG] handler=" + handler + " action=send SERVER_IP hex=" + HexTool.toString(serverIpPacket));
-        c.getSession().write(serverIpPacket);
+        c.getSession().write(CField.getServerIP(c, Integer.parseInt(ChannelServer.getInstance(c.getChannel()).getIP().split(":")[1]), charId));
     }
 
     public static final void Character_WithSecondPassword(final LittleEndianAccessor slea, final MapleClient c, final boolean view) {
-        final String handler = "Character_WithSecondPassword";
-        final long bytesAtEntry = slea.available();
-        System.out.println("[CHAR LOGIN DEBUG] handler=" + handler + " action=received bytesAvailable="
-                + bytesAtEntry + " haspic=true view=" + view);
-        if (bytesAtEntry < 6) {
-            logCharacterSelectionClose(handler, "insufficient packet bytes before password and character id: " + bytesAtEntry);
-            c.getSession().close();
-            return;
-        }
         final String password = slea.readMapleAsciiString();
         final int charId = slea.readInt();
         if (view) {
             c.setChannel(1);
             c.setWorld(slea.readInt());
         }
-        final boolean loggedIn = c.isLoggedIn();
-        final boolean loginFailed = loginFailCount(c);
-        final boolean loginAuth = c.login_Auth(charId);
-        final ChannelServer channelServer = ChannelServer.getInstance(c.getChannel());
-        logCharacterSelectionDebug(handler, c, charId, true, bytesAtEntry, loggedIn, loginFailed, loginAuth, channelServer);
-        if (!loggedIn || loginFailed || !loginAuth || channelServer == null || c.getWorld() != 0) { // TODOO: MULTI WORLDS
-            final String reason = !loggedIn ? "isLoggedIn=false"
-                    : loginFailed ? "loginFailCount=true"
-                    : !loginAuth ? "login_Auth=false"
-                    : channelServer == null ? "ChannelServer.getInstance(channel)=null"
-                    : "world!=0";
-            logCharacterSelectionClose(handler, reason);
+        if (!c.isLoggedIn() || loginFailCount(c) || !c.login_Auth(charId) || ChannelServer.getInstance(c.getChannel()) == null || c.getWorld() != 0) { // TODOO: MULTI WORLDS
             c.getSession().close();
             return;
         }
@@ -592,9 +521,7 @@ public class CharLoginHandler {
             final String s = c.getSessionIPAddress();
             LoginServer.putLoginAuth(charId, s.substring(s.indexOf('/') + 1, s.length()), c.getTempIP());
             c.updateLoginState(MapleClient.LOGIN_SERVER_TRANSITION, s);
-            final byte[] serverIpPacket = CField.getServerIP(c, Integer.parseInt(channelServer.getIP().split(":")[1]), charId);
-            System.out.println("[CHAR LOGIN DEBUG] handler=" + handler + " action=send SERVER_IP hex=" + HexTool.toString(serverIpPacket));
-            c.getSession().write(serverIpPacket);
+            c.getSession().write(CField.getServerIP(c, Integer.parseInt(ChannelServer.getInstance(c.getChannel()).getIP().split(":")[1]), charId));
         } else {
             c.getSession().write(LoginPacket.secondPwError((byte) 0x14));
         }

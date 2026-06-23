@@ -134,15 +134,10 @@ public class MapleClient implements Serializable {
 
     public void createdChar(final int id) {
         allowedChar.add(id);
-        System.out.println("[CHAR LOGIN DEBUG] allowedChar source=create charId=" + id
-                + " accountId=" + accId + " allowedChar=" + allowedChar);
     }
 
     public final boolean login_Auth(final int id) {
-        final boolean authorized = allowedChar.contains(id);
-        System.out.println("[CHAR LOGIN DEBUG] login_Auth charId=" + id + " accountId=" + accId
-                + " result=" + authorized + " allowedChar=" + allowedChar);
-        return authorized;
+        return allowedChar.contains(id);
     }
 
     public final List<MapleCharacter> loadCharacters(final int serverId) { // TODO make this less costly zZz
@@ -183,8 +178,6 @@ public class MapleClient implements Serializable {
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
                         chars.add(new CharNameAndId(rs.getString("name"), rs.getInt("id")));
-                        System.out.println("[CHAR LOGIN DEBUG] allowedChar source=database charId=" + rs.getInt("id")
-                                + " accountId=" + accId + " world=" + serverId);
                         LoginServer.getLoginAuth(rs.getInt("id"));
                     }
                 }

@@ -511,20 +511,17 @@ public class MapleServerHandler extends IoHandlerAdapter implements MapleServerH
                     }
                 } catch (NegativeArraySizeException e) {
                     //swallow, no one cares
-                    logCharacterSelectionException(recv, slea, e);
                     if (!ServerConstants.Use_Fixed_IV) {
                         FileoutputUtil.outputFileError(FileoutputUtil.PacketEx_Log, e);
                         FileoutputUtil.log(FileoutputUtil.PacketEx_Log, "Packet: " + header_num + "\n" + slea.toString(true));
                     }
                 } catch (ArrayIndexOutOfBoundsException e) {
                     //swallow, no one cares
-                    logCharacterSelectionException(recv, slea, e);
                     if (!ServerConstants.Use_Fixed_IV) {
                         FileoutputUtil.outputFileError(FileoutputUtil.PacketEx_Log, e);
                         FileoutputUtil.log(FileoutputUtil.PacketEx_Log, "Packet: " + header_num + "\n" + slea.toString(true));
                     }
                 } catch (Exception e) {
-                    logCharacterSelectionException(recv, slea, e);
                     FileoutputUtil.outputFileError(FileoutputUtil.PacketEx_Log, e);
                     FileoutputUtil.log(FileoutputUtil.PacketEx_Log, "Packet: " + header_num + "\n" + slea.toString(true));
                 }
@@ -535,15 +532,6 @@ public class MapleServerHandler extends IoHandlerAdapter implements MapleServerH
         //final StringBuilder sb = new StringBuilder("Received data : (Unhandled)\n");
         //sb.append(HexTool.toString((byte[]) message)).append("\n").append(HexTool.toStringFromAscii((byte[]) message));
         //System.out.println(sb.toString());
-    }
-
-    private static void logCharacterSelectionException(final RecvPacketOpcode recv, final LittleEndianAccessor slea, final Exception e) {
-        if (recv == RecvPacketOpcode.PICK_ALL_CHAR || recv == RecvPacketOpcode.CHAR_SELECT_NO_PIC
-                || recv == RecvPacketOpcode.VIEW_REGISTER_PIC || recv == RecvPacketOpcode.CHAR_SELECT
-                || recv == RecvPacketOpcode.VIEW_SELECT_PIC || recv == RecvPacketOpcode.AUTH_SECOND_PASSWORD) {
-            System.err.println("[CHAR LOGIN DEBUG] handler=" + recv + " action=packet-exception"
-                    + " bytesRemaining=" + slea.available() + " exception=" + e);
-        }
     }
 
     public static final void handlePacket(final RecvPacketOpcode header, final LittleEndianAccessor slea, final MapleClient c, final boolean cs) throws Exception {
