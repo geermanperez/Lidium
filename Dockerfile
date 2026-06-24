@@ -49,7 +49,6 @@ COPY --chown=latinms:latinms CashShopBlackList.ini ./CashShopBlackList.ini
 COPY --chown=latinms:latinms recvopsGMS.properties ./recvopsGMS.properties
 COPY --chown=latinms:latinms sendopsGMS.properties ./sendopsGMS.properties
 COPY --chown=latinms:latinms scripts/ ./scripts/
-COPY --chown=latinms:latinms sql/migrations/ ./sql/migrations/
 COPY --chown=latinms:latinms docker/entrypoint.sh ./docker/entrypoint.sh
 
 RUN mkdir -p /app/wz /app/logs && \
