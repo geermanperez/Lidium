@@ -615,12 +615,34 @@ public class MapleServerHandler extends IoHandlerAdapter implements MapleServerH
                 CharLoginHandler.Character_WithoutSecondPassword(slea, c, false, true);
                 break;
             case CHAR_SELECT_NO_PIC:
+                // The LatinMS v111 client repeats this character-selection
+                // packet after reconnecting to the channel server. At that
+                // point the login session and its allowed-character list no
+                // longer exist; authenticate through LoginServer instead.
+                if (!cs && c.getChannel() > 0) {
+                    if (slea.available() < 4) {
+                        c.getSession().close();
+                    } else {
+                        InterServerHandler.Loggedin(slea.readInt(), c);
+                    }
+                    break;
+                }
                 CharLoginHandler.Character_WithoutSecondPassword(slea, c, false, false);
                 break;
             case VIEW_REGISTER_PIC:
                 CharLoginHandler.Character_WithoutSecondPassword(slea, c, true, true);
                 break;
             case CHAR_SELECT:
+                // Same fallback as CHAR_SELECT_NO_PIC for clients that send
+                // their selected character packet again on the channel socket.
+                if (!cs && c.getChannel() > 0) {
+                    if (slea.available() < 4) {
+                        c.getSession().close();
+                    } else {
+                        InterServerHandler.Loggedin(slea.readInt(), c);
+                    }
+                    break;
+                }
                 CharLoginHandler.Character_WithoutSecondPassword(slea, c, true, false);
                 break;
             case VIEW_SELECT_PIC:

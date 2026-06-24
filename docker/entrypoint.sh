@@ -62,7 +62,23 @@ EOF
 echo "[OK] db.properties generado (contrasena no mostrada en logs)."
 
 # -----------------------------------------------------------------------------
-# 4. Actualizar channel.properties para aceptar conexiones externas
+# 4. Corregir una incompatibilidad de schema de instalaciones antiguas.
+#    MapleCharacter.saveToDB inserta inventoryslot sin especificar id; por eso
+#    esa columna debe ser AUTO_INCREMENT.
+# -----------------------------------------------------------------------------
+INVENTORY_SLOT_ID_EXTRA="$(mysql -h"${DB_HOST}" -P"${DB_PORT}" -u"${DB_USER}" --password="${DB_PASSWORD}" \
+    --batch --skip-column-names "${DB_NAME}" \
+    -e "SELECT EXTRA FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'inventoryslot' AND COLUMN_NAME = 'id'")"
+
+if [ "${INVENTORY_SLOT_ID_EXTRA}" != "auto_increment" ]; then
+    echo "[INFO] Reparando inventoryslot.id para que sea AUTO_INCREMENT..."
+    mysql -h"${DB_HOST}" -P"${DB_PORT}" -u"${DB_USER}" --password="${DB_PASSWORD}" "${DB_NAME}" \
+        -e "ALTER TABLE inventoryslot MODIFY COLUMN id INT NOT NULL AUTO_INCREMENT"
+    echo "[OK] inventoryslot.id reparado."
+fi
+
+# -----------------------------------------------------------------------------
+# 5. Actualizar channel.properties para aceptar conexiones externas
 #    net.sf.odinms.world.host controla donde bindea el LOGIN server.
 #    Debe ser 0.0.0.0 en Docker para que docker-proxy pueda alcanzarlo.
 #    net.sf.odinms.channel.net.interface controla el bind de los canales.
@@ -83,7 +99,7 @@ else
 fi
 
 # -----------------------------------------------------------------------------
-# 5. Validar y aplicar la IP publica del servidor.
+# 6. Validar y aplicar la IP publica del servidor.
 #    El protocolo v111 redirige con una IPv4 cruda; no acepta nombres DNS.
 #    Nunca usar localhost aqui: desde un jugador remoto apunta a su propia PC.
 # -----------------------------------------------------------------------------
@@ -119,7 +135,7 @@ if [ -f "${WORLD_PROPS}" ]; then
 fi
 
 # -----------------------------------------------------------------------------
-# 6. Verificar que el JAR principal existe
+# 7. Verificar que el JAR principal existe
 # -----------------------------------------------------------------------------
 JAR_FILE="/app/dist/Lidium.jar"
 if [ ! -f "${JAR_FILE}" ]; then
@@ -131,7 +147,7 @@ fi
 echo "[OK] JAR encontrado: ${JAR_FILE}"
 
 # -----------------------------------------------------------------------------
-# 7. Construir classpath y arrancar el servidor con exec
+# 8. Construir classpath y arrancar el servidor con exec
 #    Se usa exec para que Java reciba las senales del sistema (SIGTERM, SIGINT)
 #    y pueda apagarse limpiamente.
 # -----------------------------------------------------------------------------

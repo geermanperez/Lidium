@@ -288,7 +288,14 @@ public class ChannelServer {
 
     public static final void startChannel_Main() {
         serverStartTime = System.currentTimeMillis();
-        newInstance(1).run_startup_configurations();
+        final int channelCount = Integer.parseInt(ServerProperties.getProperty("net.sf.odinms.channel.count", "1"));
+        if (channelCount < 1 || channelCount > 6) {
+            throw new IllegalStateException("net.sf.odinms.channel.count debe estar entre 1 y 6: " + channelCount);
+        }
+        System.out.println("[Channel] Iniciando " + channelCount + " channels.");
+        for (int channel = 1; channel <= channelCount; channel++) {
+            newInstance(channel).run_startup_configurations();
+        }
     }
 
     public Map<MapleSquadType, MapleSquad> getAllSquads() {

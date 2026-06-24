@@ -24,9 +24,39 @@ public class ServerConstants {
 //159.89.87.254 
 
     public static boolean TESPIA = false; // true = uses GMS test server, for MSEA it does nothing though
-    public static final byte[] Gateway_IP = new byte[]{(byte) 127, (byte) 0, (byte) 0, (byte) 1};
+    /**
+     * IPv4 announced to clients when they select or change channel.
+     *
+     * <p>Docker supplies this as {@code -Dlatinms.publicIp}. Keeping the
+     * loopback default makes a local, non-Docker launch possible, while an
+     * invalid production value fails during startup instead of redirecting
+     * every player to an unusable address.</p>
+     */
+    public static final byte[] Gateway_IP = loadGatewayIp();
     //public static final byte[] Gateway_IP = new byte[]{(byte) 5, (byte) 180, (byte) 9, (byte) 16};
     //Inject a DLL that hooks SetupDiGetClassDevsExA and returns 0.
+
+    private static byte[] loadGatewayIp() {
+        final String configuredIp = System.getProperty("latinms.publicIp", "127.0.0.1").trim();
+        final String[] octets = configuredIp.split("\\.", -1);
+        if (octets.length != 4) {
+            throw new IllegalStateException("latinms.publicIp debe ser una direccion IPv4: " + configuredIp);
+        }
+
+        final byte[] address = new byte[4];
+        for (int i = 0; i < octets.length; i++) {
+            try {
+                final int value = Integer.parseInt(octets[i]);
+                if (value < 0 || value > 255) {
+                    throw new NumberFormatException();
+                }
+                address[i] = (byte) value;
+            } catch (NumberFormatException ex) {
+                throw new IllegalStateException("latinms.publicIp debe ser una direccion IPv4: " + configuredIp, ex);
+            }
+        }
+        return address;
+    }
 
     /*
      * Specifics which job gives an additional EXP to party

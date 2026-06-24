@@ -100,10 +100,10 @@ public class LoginServer {
         cfg.getFilterChain().addLast("codec", new ProtocolCodecFilter(new MapleCodecFactory()));
 
         try {
-            // Keep the server-side listener isolated from the client relay.
-            // The v111 TEST client connects to 127.0.0.2:8484, which relays
-            // to this loopback-only listener at 127.0.0.1:8484.
-            InetSocketadd = new InetSocketAddress("127.0.0.1", PORT);
+            // Bind on every interface. Docker publishes this port to remote
+            // clients; binding only to 127.0.0.1 makes the published port
+            // unreachable from outside the container.
+            InetSocketadd = new InetSocketAddress(PORT);
             acceptor.bind(InetSocketadd, new MapleServerHandler(-1, false), cfg);
             System.out.println("Listening on port " + PORT + ".");
         } catch (IOException e) {
