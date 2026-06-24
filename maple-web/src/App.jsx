@@ -1488,6 +1488,9 @@ function App() {
   const [token, setToken] = useState(() => getToken());
   const [accountData, setAccountData] = useState(null);
   const [characters, setCharacters] = useState([]);
+  const [characterForm, setCharacterForm] = useState({ name: "", gender: "0" });
+  const [creatingCharacter, setCreatingCharacter] = useState(false);
+  const [characterMessage, setCharacterMessage] = useState("");
   const [accountTab, setAccountTab] = useState("account");
   const [profileForm, setProfileForm] = useState({
     display_name: "",
@@ -2288,6 +2291,36 @@ function App() {
     }
   };
 
+  const handleCharacterChange = (event) => {
+    setCharacterForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  };
+
+  const submitCharacter = async (event) => {
+    event.preventDefault();
+    setCharacterMessage("");
+    const name = characterForm.name.trim();
+
+    if (!/^[A-Za-z0-9]{3,12}$/.test(name)) {
+      setCharacterMessage(language === "es" ? "El nombre debe tener entre 3 y 12 caracteres alfanumericos." : "The name must have 3 to 12 alphanumeric characters.");
+      return;
+    }
+
+    try {
+      setCreatingCharacter(true);
+      const result = await request("/account/me/characters", {
+        method: "POST",
+        body: JSON.stringify({ name, gender: Number(characterForm.gender) }),
+      });
+      setCharacters((current) => [...current, result.character].sort((a, b) => Number(b.level || 0) - Number(a.level || 0)));
+      setCharacterForm({ name: "", gender: "0" });
+      setCharacterMessage(result.message || (language === "es" ? "Personaje creado correctamente." : "Character created successfully."));
+    } catch (err) {
+      setCharacterMessage(err.body?.message || err.message || (language === "es" ? "No se pudo crear el personaje." : "Could not create the character."));
+    } finally {
+      setCreatingCharacter(false);
+    }
+  };
+
   const rankingPreview = ranking.length > 0 ? ranking.slice(0, 3) : topPlayersFallback;
   const rankingRows = useMemo(() => {
     const source = rankingTab === "guilds"
@@ -2836,6 +2869,9 @@ function App() {
                 adminNewsMessage={adminNewsMessage}
                 adminStats={adminStats}
                 characters={characters}
+                characterForm={characterForm}
+                characterMessage={characterMessage}
+                creatingCharacter={creatingCharacter}
                 deleteAdminNews={deleteAdminNews}
                 editAdminNews={editAdminNews}
                 handleLogout={handleLogout}
@@ -2843,6 +2879,7 @@ function App() {
                 handleAdminNewsChange={handleAdminNewsChange}
                 handleAdminNewsImage={handleAdminNewsImage}
                 handlePasswordChange={handlePasswordChange}
+                handleCharacterChange={handleCharacterChange}
                 handleProfileChange={handleProfileChange}
                 isAdmin={isAdmin}
                 language={language}
@@ -2854,6 +2891,7 @@ function App() {
                 resetAdminNewsForm={resetAdminNewsForm}
                 submitAdminNews={submitAdminNews}
                 submitPassword={submitPassword}
+                submitCharacter={submitCharacter}
                 submitProfile={submitProfile}
                 adminOnlinePlayers={adminOnlinePlayers}
                 text={t.account}
@@ -3588,7 +3626,10 @@ function AccountPanel({
   adminNewsLoading,
   adminNewsMessage,
   adminStats,
+  characterForm,
+  characterMessage,
   characters,
+  creatingCharacter,
   deleteAdminNews,
   editAdminNews,
   handleLogout,
@@ -3596,6 +3637,7 @@ function AccountPanel({
   handleAdminNewsChange,
   handleAdminNewsImage,
   handlePasswordChange,
+  handleCharacterChange,
   handleProfileChange,
   isAdmin,
   adminOnlinePlayers,
@@ -3608,6 +3650,7 @@ function AccountPanel({
   setAccountTab,
   submitAdminNews,
   submitPassword,
+  submitCharacter,
   submitProfile,
   text,
   token,
@@ -3775,6 +3818,37 @@ function AccountPanel({
           {accountTab === "characters" ? (
             <div className="panel__section">
               <h3>{text.characters}</h3>
+              <p className="panel__intro">
+                {language === "es"
+                  ? "Crea un aventurero nivel 1 listo para iniciar sesion en LatinMS. El nombre es unico para todo el servidor."
+                  : "Create a level 1 Adventurer ready to sign in to LatinMS. Names are unique across the server."}
+              </p>
+              <form className="form-card character-create-form" onSubmit={submitCharacter}>
+                <label>
+                  {language === "es" ? "Nombre del personaje" : "Character name"}
+                  <input
+                    name="name"
+                    value={characterForm.name}
+                    onChange={handleCharacterChange}
+                    maxLength={12}
+                    autoComplete="off"
+                    placeholder={language === "es" ? "3 a 12 letras o numeros" : "3 to 12 letters or numbers"}
+                  />
+                </label>
+                <label>
+                  {language === "es" ? "Genero" : "Gender"}
+                  <select name="gender" value={characterForm.gender} onChange={handleCharacterChange}>
+                    <option value="0">{language === "es" ? "Masculino" : "Male"}</option>
+                    <option value="1">{language === "es" ? "Femenino" : "Female"}</option>
+                  </select>
+                </label>
+                <button type="submit" className="button-primary" disabled={creatingCharacter}>
+                  {creatingCharacter
+                    ? (language === "es" ? "Creando personaje..." : "Creating character...")
+                    : (language === "es" ? "Crear personaje" : "Create character")}
+                </button>
+              </form>
+              {characterMessage ? <p className="feedback">{characterMessage}</p> : null}
               {characters.length === 0 ? <p>{text.noCharacters}</p> : (
                 <div className="characters-list">
                   {characters.map((character) => (

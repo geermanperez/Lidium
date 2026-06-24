@@ -2035,6 +2035,160 @@ app.get("/account/me/characters", authMiddleware, async (req, res) => {
   }
 });
 
+// Web character creation. This deliberately mirrors the v111 Adventurer
+// creation path in CharLoginHandler/CreateChar instead of inserting a bare
+// `characters` row: inventory slots, starter items, mount data and keymap are
+// all required by the game server when it loads a new character.
+const WEB_CHARACTER_WORLD = 0;
+const WEB_CHARACTER_SLOTS = 6;
+const WEB_CHARACTER_NAME_RE = /^[A-Za-z0-9]{3,12}$/;
+const WEB_CHARACTER_RESERVED_NAMES = ["rental", "donor", "maplenews"];
+const WEB_CHARACTER_DEFAULTS = {
+  0: { face: 20000, hair: 30030, top: 1040002, bottom: 1060002 },
+  1: { face: 21000, hair: 31000, top: 1041002, bottom: 1061002 },
+};
+const WEB_CHARACTER_STARTER_EQUIPS = [
+  { itemId: 1040002, position: -5, upgradeSlots: 7, wdef: 3 },
+  { itemId: 1041002, position: -5, upgradeSlots: 7, wdef: 3 },
+  { itemId: 1060002, position: -6, upgradeSlots: 7, wdef: 2 },
+  { itemId: 1061002, position: -6, upgradeSlots: 7, wdef: 2 },
+  { itemId: 1072001, position: -7, upgradeSlots: 5, wdef: 2 },
+  { itemId: 1302000, position: -11, upgradeSlots: 7, watk: 17 },
+];
+const WEB_CHARACTER_KEYMAP = [
+  [2, 4, 10], [3, 4, 12], [4, 4, 13], [5, 4, 18], [6, 4, 24], [7, 4, 21],
+  [16, 4, 8], [17, 4, 5], [18, 4, 0], [19, 4, 4], [23, 4, 1], [25, 4, 19],
+  [26, 4, 14], [27, 4, 15], [29, 5, 52], [31, 4, 2], [34, 4, 17], [35, 4, 11],
+  [37, 4, 3], [38, 4, 20], [40, 4, 16], [41, 4, 23], [43, 4, 9], [44, 5, 50],
+  [45, 5, 51], [46, 4, 6], [48, 4, 22], [50, 4, 7], [56, 5, 53], [57, 5, 54],
+  [59, 6, 100], [60, 6, 101], [61, 6, 102], [62, 6, 103], [63, 6, 104],
+  [64, 6, 105], [65, 6, 106],
+];
+
+function normalizeWebCharacterName(value) {
+  return String(value || "").trim();
+}
+
+function isEligibleWebCharacterName(name) {
+  const lowerName = name.toLowerCase();
+  return WEB_CHARACTER_NAME_RE.test(name)
+    && !WEB_CHARACTER_RESERVED_NAMES.some((reserved) => lowerName.includes(reserved));
+}
+
+async function insertWebCharacterItem(connection, characterId, item) {
+  const [result] = await connection.query(
+    `INSERT INTO inventoryitems
+      (characterid, itemid, inventorytype, position, quantity, owner, GM_Log, uniqueid, flag, expiredate, type, sender)
+     VALUES (?, ?, ?, ?, ?, '', '', -1, 0, -1, 0, '')`,
+    [characterId, item.itemId, item.inventoryType, item.position, item.quantity]
+  );
+
+  if (item.inventoryType !== -1) return;
+
+  await connection.query(
+    `INSERT INTO inventoryequipment
+      (inventoryitemid, upgradeslots, level, \`str\`, dex, \`int\`, luk, hp, mp, watk, matk, wdef, mdef, acc, avoid, hands, speed, jump, ViciousHammer, itemEXP, durability, enhance, potential1, potential2, potential3, potential4, potential5, socket1, socket2, socket3, incSkill, charmEXP, pvpDamage)
+     VALUES (?, ?, 0, 0, 0, 0, 0, 0, 0, ?, 0, ?, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, -1, -1, -1, -1, 0, 0)`,
+    [result.insertId, item.upgradeSlots, item.watk || 0, item.wdef || 0]
+  );
+}
+
+app.post("/account/me/characters", authMiddleware, async (req, res) => {
+  const name = normalizeWebCharacterName(req.body?.name);
+  const gender = Number(req.body?.gender);
+  const appearance = WEB_CHARACTER_DEFAULTS[gender];
+
+  if (!isEligibleWebCharacterName(name)) {
+    return res.status(400).json({ ok: false, message: "El nombre debe tener entre 3 y 12 caracteres alfanumericos y no puede estar reservado." });
+  }
+  if (!appearance) {
+    return res.status(400).json({ ok: false, message: "Selecciona un genero valido." });
+  }
+
+  let connection;
+  let advisoryLock = false;
+  try {
+    connection = await pool.getConnection();
+    // The legacy schema has no unique key on characters.name. The advisory lock
+    // closes the check-then-insert race across accounts without changing its SQL.
+    const [lockRows] = await connection.query("SELECT GET_LOCK('latinms_web_character_creation', 10) AS acquired");
+    advisoryLock = Number(lockRows[0]?.acquired) === 1;
+    if (!advisoryLock) {
+      return res.status(503).json({ ok: false, message: "El creador de personajes esta ocupado. Intenta nuevamente en unos segundos." });
+    }
+
+    await connection.beginTransaction();
+    const accountId = req.user.id;
+    const [accounts] = await connection.query("SELECT id, banned FROM accounts WHERE id = ? FOR UPDATE", [accountId]);
+    if (accounts.length === 0 || Number(accounts[0].banned) === 1) {
+      await connection.rollback();
+      return res.status(403).json({ ok: false, message: "La cuenta no puede crear personajes." });
+    }
+
+    const [duplicateNames] = await connection.query("SELECT id FROM characters WHERE LOWER(name) = LOWER(?) LIMIT 1", [name]);
+    if (duplicateNames.length > 0) {
+      await connection.rollback();
+      return res.status(409).json({ ok: false, message: "Ese nombre de personaje ya esta en uso." });
+    }
+
+    const [slotRows] = await connection.query(
+      "SELECT charslots FROM character_slots WHERE accid = ? AND worldid = ? ORDER BY id ASC LIMIT 1 FOR UPDATE",
+      [accountId, WEB_CHARACTER_WORLD]
+    );
+    if (slotRows.length === 0) {
+      await connection.query("INSERT INTO character_slots (accid, worldid, charslots) VALUES (?, ?, ?)", [accountId, WEB_CHARACTER_WORLD, WEB_CHARACTER_SLOTS]);
+    }
+    const characterSlots = Number(slotRows[0]?.charslots ?? WEB_CHARACTER_SLOTS);
+    const [characterCountRows] = await connection.query(
+      "SELECT COUNT(*) AS count FROM characters WHERE accountid = ? AND world = ? FOR UPDATE",
+      [accountId, WEB_CHARACTER_WORLD]
+    );
+    if (Number(characterCountRows[0].count) >= characterSlots) {
+      await connection.rollback();
+      return res.status(409).json({ ok: false, code: "CHARACTER_SLOTS_FULL", message: "No tienes espacios de personaje disponibles." });
+    }
+
+    const [created] = await connection.query(
+      `INSERT INTO characters
+        (level, \`str\`, dex, luk, \`int\`, hp, mp, maxhp, maxmp, sp, ap, skincolor, gender, job, hair, face, demonMarking, map, meso, party, buddyCapacity, pets, subcategory, accountid, name, world)
+       VALUES (1, 12, 5, 4, 4, 50, 50, 50, 50, '0,0,0,0,0,0,0,0,0,0', 0, 0, ?, 0, ?, ?, 0, 0, 0, -1, 20, '-1,-1,-1', 0, ?, ?, ?)`,
+      [gender, appearance.hair, appearance.face, accountId, name, WEB_CHARACTER_WORLD]
+    );
+    const characterId = created.insertId;
+
+    await connection.query("INSERT INTO inventoryslot (characterid, \`equip\`, \`use\`, setup, etc, cash) VALUES (?, 32, 32, 32, 32, 60)", [characterId]);
+    await connection.query("INSERT INTO mountdata (characterid, \`Level\`, \`Exp\`, \`Fatigue\`) VALUES (?, 1, 0, 0)", [characterId]);
+    await connection.query(
+      "INSERT INTO keymap (characterid, \`key\`, \`type\`, action) VALUES " + WEB_CHARACTER_KEYMAP.map(() => "(?, ?, ?, ?)").join(", "),
+      WEB_CHARACTER_KEYMAP.flatMap(([key, type, action]) => [characterId, key, type, action])
+    );
+
+    const starterEquips = WEB_CHARACTER_STARTER_EQUIPS.filter((item) => item.itemId === appearance.top || item.itemId === appearance.bottom || item.itemId === 1072001 || item.itemId === 1302000);
+    for (const item of starterEquips) {
+      await insertWebCharacterItem(connection, characterId, { ...item, inventoryType: -1, quantity: 1 });
+    }
+    await insertWebCharacterItem(connection, characterId, { itemId: 2000013, inventoryType: 2, position: 1, quantity: 100 });
+    await insertWebCharacterItem(connection, characterId, { itemId: 2000014, inventoryType: 2, position: 2, quantity: 100 });
+    await insertWebCharacterItem(connection, characterId, { itemId: 4161001, inventoryType: 4, position: 1, quantity: 1 });
+
+    await connection.commit();
+    return res.status(201).json({
+      ok: true,
+      message: "Personaje creado correctamente. Ya puedes ingresar al juego con esta cuenta.",
+      character: { id: characterId, name, level: 1, job: 0, gender, skin: 0, face: appearance.face, hair: appearance.hair, equips: starterEquips.map((item) => item.itemId) },
+    });
+  } catch (err) {
+    try { await connection.rollback(); } catch { /* transaction was not started */ }
+    console.error("Character creation failed:", err);
+    return res.status(500).json({ ok: false, message: "No se pudo crear el personaje.", error: err.message });
+  } finally {
+    if (advisoryLock) {
+      try { await connection.query("SELECT RELEASE_LOCK('latinms_web_character_creation')"); } catch { /* connection is being released */ }
+    }
+    connection?.release();
+  }
+});
+
 // Update or create profile
 app.put("/account/me/profile", authMiddleware, async (req, res) => {
   try {

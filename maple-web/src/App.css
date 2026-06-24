@@ -1879,6 +1879,19 @@
   gap: 14px;
 }
 
+.character-create-form {
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.45fr) auto;
+  align-items: end;
+  margin: 18px 0;
+  padding: 16px;
+  border: 1px solid rgba(235, 138, 32, 0.25);
+  background: rgba(255, 243, 222, 0.7);
+}
+
+.character-create-form .button-primary {
+  min-height: 48px;
+}
+
 .character-row {
   display: grid;
   grid-template-columns: 132px minmax(0, 1fr);
@@ -3783,6 +3796,10 @@ canvas {
 
   .form-card {
     padding: 12px;
+  }
+
+  .character-create-form {
+    grid-template-columns: 1fr;
   }
 
   .form-card input,
