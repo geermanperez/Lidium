@@ -1,8 +1,105 @@
-.idea/*
-out/*
-build/*
-wz/*
-nbproject./*
-META-INF/*
-scripts/.vscode/*
+# =============================================================================
+# LatinMS v111 (Lidium) — .gitignore
+# =============================================================================
 
+# -----------------------------------------------------------------------
+# ARCHIVOS SENSIBLES — NUNCA COMMITEAR
+# -----------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+db.properties
+**/db.properties
+db.properties.backup*
+
+# -----------------------------------------------------------------------
+# DUMPS SQL — CONTIENEN DATOS REALES DE JUGADORES
+# Los dumps de schema limpio van en database/init/ (sin datos de cuentas)
+# -----------------------------------------------------------------------
+*.sql
+*.sql.gz
+*.dump
+sql/
+migration/backups/
+migration/source/
+
+# EXCEPCION: scripts de schema puro sin datos reales pueden incluirse
+# explicitamente con: git add -f database/init/schema.sql
+
+# -----------------------------------------------------------------------
+# LOGS
+# -----------------------------------------------------------------------
+*.log
+logs/
+log/
+Log_Packet_Except.rtf
+LogIPs.txt
+build/*.log
+build/*.pid
+
+# -----------------------------------------------------------------------
+# BUILD / COMPILACION
+# -----------------------------------------------------------------------
+target/
+out/
+build/classes/
+build/manifest-check/
+*.class
+
+# -----------------------------------------------------------------------
+# IDEs
+# -----------------------------------------------------------------------
+.idea/
+.vscode/
+*.iml
+nbproject/
+nbproject.*/
+META-INF/
+
+# -----------------------------------------------------------------------
+# JVM crash dumps
+# -----------------------------------------------------------------------
+hs_err_pid*
+replay_pid*
+
+# -----------------------------------------------------------------------
+# TEMPORALES Y SISTEMA
+# -----------------------------------------------------------------------
+tmp/
+temp/
+.DS_Store
+Thumbs.db
+
+# -----------------------------------------------------------------------
+# ARCHIVOS WZ (binarios grandes del cliente — no van en git)
+# Los wz/ SI van en la imagen Docker pero NO en el repositorio.
+# Distribuirlos por separado o via volumen/objeto de almacenamiento.
+# -----------------------------------------------------------------------
+wz/
+wz.zip
+
+# -----------------------------------------------------------------------
+# BACKUPS
+# -----------------------------------------------------------------------
+backups/
+backup/
+dumps/
+
+# -----------------------------------------------------------------------
+# NODE (maple-api, maple-web — fuera del scope del server Java)
+# -----------------------------------------------------------------------
+node_modules/
+maple-api/node_modules/
+maple-web/node_modules/
+maple-web/.env
+maple-api/.env
+maple-web/dist/
+maple-api/dist/
+
+# -----------------------------------------------------------------------
+# DIST DE JAR — el dist/ de Java (Lidium.jar) SI va en git
+# Solo excluir los backups del JAR
+# -----------------------------------------------------------------------
+dist/*.backup*
+dist/*.handshake-diagnostic.jar
+dist/*.loopback.jar

@@ -1,0 +1,84 @@
+# =============================================================================
+# LatinMS v111 (Lidium) — docker-compose.yml
+# Produccion: MySQL sin puerto publico, servidor Java con puertos TCP.
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Base de datos MySQL
+  # Puerto 3306 NO expuesto publicamente (solo red interna de Docker).
+  # Para acceso local en desarrollo usar docker-compose.local.yml como override.
+  # ---------------------------------------------------------------------------
+  db:
+    image: mysql:8.0
+    container_name: latinms-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - latinms_mysql_data:/var/lib/mysql
+      # Scripts SQL de schema puro (sin datos reales) se ejecutan al crear
+      # el volumen por primera vez. Agregar archivos .sql en database/init/
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --default-authentication-plugin=mysql_native_password
+      --max_allowed_packet=64M
+      --innodb_buffer_pool_size=256M
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost",
+             "-u", "${DB_USER}", "--password=${DB_PASSWORD}", "--silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - latinms-internal
+
+  # ---------------------------------------------------------------------------
+  # Servidor MapleStory v111 (Lidium)
+  # Puertos TCP: 9484 (Login), 8585 (Channel), 9494 (Cash Shop)
+  # ---------------------------------------------------------------------------
+  latinms-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: latinms-server
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Sobrescribir DB_HOST para apuntar al contenedor db
+      DB_HOST: db
+      DB_PORT: 3306
+    ports:
+      # IMPORTANTE: estos son puertos TCP, no HTTP.
+      # En EasyPanel configurar como "TCP" no como "HTTP/HTTPS".
+      - "9484:9484"   # Login Server
+      - "8585:8585"   # Channel Server
+      - "9494:9494"   # Cash Shop Server
+    volumes:
+      - latinms_logs:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+    mem_limit: 3g
+    networks:
+      - latinms-internal
+    # Sin healthcheck via HTTP ya que el servidor usa protocolo binario propio.
+    # El healthcheck se puede hacer via scripts/post-start-check.sh manualmente.
+
+volumes:
+  latinms_mysql_data:
+    driver: local
+  latinms_logs:
+    driver: local
+
+networks:
+  latinms-internal:
+    driver: bridge

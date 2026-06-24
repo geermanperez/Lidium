@@ -1,0 +1,11 @@
+# Este directorio es el punto de montaje para scripts SQL de inicializacion.
+# Los archivos .sql colocados aqui se ejecutan automaticamente cuando
+# el contenedor MySQL arranca con un volumen vacio (primera vez).
+#
+# IMPORTANTE:
+# - Solo colocar scripts de schema LIMPIO (solo CREATE TABLE, indexes, etc.)
+# - NUNCA colocar dumps con datos reales de jugadores (cuentas, personajes, items)
+# - Los dumps de la instancia live van en backups/ (fuera del repositorio)
+#
+# Para generar un schema limpio desde la base actual:
+#   mysqldump --no-data --routines --triggers -u usuario -p v111 > database/init/schema.sql
