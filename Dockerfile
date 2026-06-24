@@ -4,7 +4,7 @@
 # NO requiere compilacion desde fuente — usa dist/Lidium.jar directamente.
 # =============================================================================
 
-FROM eclipse-temurin:16-jre
+FROM eclipse-temurin:17-jre
 
 # -----------------------------------------------------------------------------
 # Metadatos
