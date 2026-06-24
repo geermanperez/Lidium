@@ -1791,10 +1791,11 @@ app.post("/register", async (req, res) => {
     const [existing] = await pool.query("SELECT id FROM accounts WHERE name = ? LIMIT 1", [username]);
     if (existing.length > 0) return res.status(409).json({ ok: false, message: "Ese usuario ya existe." });
 
+    const hashedPassword = await bcrypt.hash(password, 12);
     const [created] = await pool.query(
-      `INSERT INTO accounts (name, password, pin, pic, loggedin, banned, birthday, email, nick)
-       VALUES (?, ?, '0000', '000000', 0, 0, ?, ?, ?)`,
-      [username, password, birthDate, email, displayName]
+      `INSERT INTO accounts (name, password, loggedin, banned, birthday, email)
+       VALUES (?, ?, 0, 0, ?, ?)`,
+      [username, hashedPassword, birthDate, email]
     );
 
     await pool.query(
