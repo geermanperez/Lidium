@@ -91,7 +91,9 @@ RUN chmod +x /app/docker/entrypoint.sh
 # -----------------------------------------------------------------------------
 # Crear directorio de logs con permisos correctos
 # -----------------------------------------------------------------------------
-RUN mkdir -p /app/logs && chown -R latinms:latinms /app/logs
+RUN mkdir -p /app/logs && \
+    touch /app/db.properties && \
+    chown -R latinms:latinms /app
 
 # -----------------------------------------------------------------------------
 # Cambiar al usuario no root
