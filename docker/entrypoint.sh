@@ -63,12 +63,19 @@ echo "[OK] db.properties generado (contrasena no mostrada en logs)."
 
 # -----------------------------------------------------------------------------
 # 4. Actualizar channel.properties para aceptar conexiones externas
-#    En Docker, la interfaz debe ser 0.0.0.0 (no 127.0.0.1)
+#    net.sf.odinms.world.host controla donde bindea el LOGIN server.
+#    Debe ser 0.0.0.0 en Docker para que docker-proxy pueda alcanzarlo.
+#    net.sf.odinms.channel.net.interface controla el bind de los canales.
 # -----------------------------------------------------------------------------
 CHANNEL_PROPS="/app/channel.properties"
 CHANNEL_IFACE="${CHANNEL_INTERFACE:-0.0.0.0}"
 
 if [ -f "${CHANNEL_PROPS}" ]; then
+    # Login server bind address (world.host): debe ser 0.0.0.0 en Docker
+    sed -i "s|^net\.sf\.odinms\.world\.host=.*|net.sf.odinms.world.host=0.0.0.0|g" "${CHANNEL_PROPS}"
+    echo "[OK] channel.properties: net.sf.odinms.world.host=0.0.0.0 (login server bind)"
+
+    # Channel server bind address
     sed -i "s|^net\.sf\.odinms\.channel\.net\.interface=.*|net.sf.odinms.channel.net.interface=${CHANNEL_IFACE}|g" "${CHANNEL_PROPS}"
     echo "[OK] channel.properties: net.sf.odinms.channel.net.interface=${CHANNEL_IFACE}"
 else
