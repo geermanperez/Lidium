@@ -297,32 +297,33 @@ public class MapleServerHandler extends IoHandlerAdapter implements MapleServerH
         System.out.println("[DEBUG HANDSHAKE] Conexion recibida desde " + session.getRemoteAddress()
                 + " channel=" + channel + " cashshop=" + cs);
 
-        if (BlockedIP.contains(address)) {
-            session.close();
-            return;
-        }
-        final Pair<Long, Byte> track = tracker.get(address);
-
-        byte count;
-        if (track == null) {
-            count = 1;
-        } else {
-            count = track.right;
-
-            final long difference = System.currentTimeMillis() - track.left;
-            if (difference < 2000) { // Less than 2 sec
-                count++;
-            } else if (difference > 20000) { // Over 20 sec
-                count = 1;
-            }
-            if (count >= 10) {
-                BlockedIP.add(address);
-                tracker.remove(address); // Cleanup
-                session.close();
-                return;
-            }
-        }
-        tracker.put(address, new Pair<Long, Byte>(System.currentTimeMillis(), count));
+        // DISABLED: Rate limiting causing false positives on Bolivia IP
+        // if (BlockedIP.contains(address)) {
+        //     session.close();
+        //     return;
+        // }
+        // final Pair<Long, Byte> track = tracker.get(address);
+        //
+        // byte count;
+        // if (track == null) {
+        //     count = 1;
+        // } else {
+        //     count = track.right;
+        //
+        //     final long difference = System.currentTimeMillis() - track.left;
+        //     if (difference < 2000) { // Less than 2 sec
+        //         count++;
+        //     } else if (difference > 20000) { // Over 20 sec
+        //         count = 1;
+        //     }
+        //     if (count >= 10) {
+        //         BlockedIP.add(address);
+        //         tracker.remove(address); // Cleanup
+        //         session.close();
+        //         return;
+        //     }
+        // }
+        // tracker.put(address, new Pair<Long, Byte>(System.currentTimeMillis(), count));
         // End of IP checking.
         String IP = address.substring(address.indexOf('/') + 1, address.length());
         if (channel > -1) {
@@ -633,16 +634,8 @@ public class MapleServerHandler extends IoHandlerAdapter implements MapleServerH
                 CharLoginHandler.Character_WithoutSecondPassword(slea, c, true, true);
                 break;
             case CHAR_SELECT:
-                // Same fallback as CHAR_SELECT_NO_PIC for clients that send
-                // their selected character packet again on the channel socket.
-                if (!cs && c.getChannel() > 0) {
-                    if (slea.available() < 4) {
-                        c.getSession().close();
-                    } else {
-                        InterServerHandler.Loggedin(slea.readInt(), c);
-                    }
-                    break;
-                }
+                // Always use Character_WithoutSecondPassword for proper packet parsing
+                // The condition (!cs && c.getChannel() > 0) was causing charId corruption
                 CharLoginHandler.Character_WithoutSecondPassword(slea, c, true, false);
                 break;
             case VIEW_SELECT_PIC:
