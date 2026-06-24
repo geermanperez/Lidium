@@ -69,7 +69,6 @@ CHANNEL_PROPS="/app/channel.properties"
 CHANNEL_IFACE="${CHANNEL_INTERFACE:-0.0.0.0}"
 
 if [ -f "${CHANNEL_PROPS}" ]; then
-    # Reemplazar la linea de interfaz de red
     sed -i "s|^net\.sf\.odinms\.channel\.net\.interface=.*|net.sf.odinms.channel.net.interface=${CHANNEL_IFACE}|g" "${CHANNEL_PROPS}"
     echo "[OK] channel.properties: net.sf.odinms.channel.net.interface=${CHANNEL_IFACE}"
 else
@@ -77,13 +76,17 @@ else
 fi
 
 # -----------------------------------------------------------------------------
-# 5. Actualizar worldGMS.properties con la interfaz de red
+# 5. Actualizar worldGMS.properties con la IP publica del servidor
+#    SERVER_PUBLIC_IP es la IP que el LOGIN SERVER le envia al cliente
+#    para que sepa a donde conectarse para el canal.
+#    Si no se define, usa 127.0.0.1 (solo funciona en local).
 # -----------------------------------------------------------------------------
 WORLD_PROPS="/app/worldGMS.properties"
+PUBLIC_IP="${SERVER_PUBLIC_IP:-127.0.0.1}"
 
 if [ -f "${WORLD_PROPS}" ]; then
-    sed -i "s|^net\.sf\.odinms\.channel\.net\.interface=.*|net.sf.odinms.channel.net.interface=${CHANNEL_IFACE}|g" "${WORLD_PROPS}"
-    echo "[OK] worldGMS.properties: interfaz actualizada a ${CHANNEL_IFACE}"
+    sed -i "s|^net\.sf\.odinms\.channel\.net\.interface=.*|net.sf.odinms.channel.net.interface=${PUBLIC_IP}|g" "${WORLD_PROPS}"
+    echo "[OK] worldGMS.properties: interfaz publica actualizada a ${PUBLIC_IP}"
 fi
 
 # -----------------------------------------------------------------------------
