@@ -4,7 +4,7 @@
 # NO requiere compilacion desde fuente — usa dist/Lidium.jar directamente.
 # =============================================================================
 
-FROM azul/zulu-openjdk:16-latest
+FROM eclipse-temurin:16-jre
 
 # -----------------------------------------------------------------------------
 # Metadatos
