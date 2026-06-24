@@ -73,11 +73,14 @@ COPY --chown=latinms:latinms sendopsGMS.properties    ./sendopsGMS.properties
 COPY --chown=latinms:latinms scripts/ ./scripts/
 
 # -----------------------------------------------------------------------------
-# Copiar archivos wz (datos del cliente MapleStory)
-# Son archivos estaticos de juego — no contienen datos de usuarios.
-# Nota: si los wz son muy grandes (>1GB), considerar usar un volumen externo.
+# NOTA: Los archivos wz/ NO se copian en la imagen.
+# Son ~1GB de datos binarios del cliente MapleStory.
+# Se montan como volumen externo en EasyPanel:
+#   Host path:      /etc/easypanel/projects/latinmsv111/wz
+#   Container path: /app/wz
+# Ver EASYPANEL_DEPLOYMENT.md para instrucciones de carga.
 # -----------------------------------------------------------------------------
-COPY --chown=latinms:latinms wz/ ./wz/
+RUN mkdir -p /app/wz && chown latinms:latinms /app/wz
 
 # -----------------------------------------------------------------------------
 # Copiar el entrypoint
