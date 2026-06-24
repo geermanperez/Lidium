@@ -1017,7 +1017,7 @@ function getCharacterImage(character) {
   const renderItems = equippedItems.length > 0 ? equippedItems : [...defaultEquips, DEFAULT_WEAPON];
   const itemPath = [hair, face, ...renderItems].join(",");
 
-  return `https://maplestory.io/api/GMS/83/Character/${renderSkin}/${itemPath}/stand1/0?resize=4`;
+  return `https://maplestory.io/api/GMS/111/Character/${renderSkin}/${itemPath}/stand1/0?resize=4`;
 }
 
 function getPlayerName(player) {
@@ -2527,7 +2527,7 @@ function App() {
           <section className="home-portal-hero">
             <div className="home-portal-hero__content">
               <img src="/latinms.png" alt="LatinMS" className="home-portal-hero__brand" />
-              <span className="home-portal-hero__badge">v83 LatinMS</span>
+              <span className="home-portal-hero__badge">v111 LatinMS</span>
               <h1>{t.hero.title}</h1>
               <p>{t.hero.copy}</p>
               <div className="home-portal-hero__actions">
@@ -2560,7 +2560,7 @@ function App() {
                   <aside className="home-left-rail" aria-label={language === "es" ? "Accesos LatinMS" : "LatinMS shortcuts"}>
                     <section className="home-rail-card home-rail-card--brand">
                       <img src="/latinms.png" alt="LatinMS" />
-                      <strong>LatinMS v83</strong>
+                      <strong>LatinMS v111</strong>
                     </section>
                     <a href={downloadUrl} target="_blank" rel="noreferrer" className="home-rail-link">
                       <Download size={20} />
