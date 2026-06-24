@@ -60,7 +60,12 @@ services:
       # IMPORTANTE: estos son puertos TCP, no HTTP.
       # En EasyPanel configurar como "TCP" no como "HTTP/HTTPS".
       - "9484:9484"   # Login Server
-      - "8585:8585"   # Channel Server
+      - "8585:8585"   # Channel 1
+      - "8586:8586"   # Channel 2
+      - "8587:8587"   # Channel 3
+      - "8588:8588"   # Channel 4
+      - "8589:8589"   # Channel 5
+      - "8590:8590"   # Channel 6
       - "9494:9494"   # Cash Shop Server
     volumes:
       - latinms_logs:/app/logs

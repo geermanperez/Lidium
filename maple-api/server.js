@@ -1956,7 +1956,8 @@ app.post("/password-recovery/reset", async (req, res) => {
     }
 
     const resetToken = tokenRows[0];
-    await pool.query("UPDATE accounts SET password = ? WHERE id = ?", [newPassword, resetToken.account_id]);
+    const hashedNewPassword = await bcrypt.hash(newPassword, 12);
+    await pool.query("UPDATE accounts SET password = ? WHERE id = ?", [hashedNewPassword, resetToken.account_id]);
     await pool.query("UPDATE password_reset_tokens SET used_at = NOW() WHERE id = ?", [resetToken.id]);
 
     return res.json({ ok: true, message: "Contrasena actualizada correctamente. Ya puedes iniciar sesion." });
@@ -2085,7 +2086,8 @@ app.post("/account/me/change-password", authMiddleware, async (req, res) => {
 
     if (!verifyPassword(currentPassword, account.password)) return res.status(401).json({ ok: false, message: "Contraseña actual incorrecta" });
 
-    await pool.query("UPDATE accounts SET password = ? WHERE id = ?", [newPassword, uid]);
+    const hashedChangedPassword = await bcrypt.hash(newPassword, 12);
+    await pool.query("UPDATE accounts SET password = ? WHERE id = ?", [hashedChangedPassword, uid]);
     return res.json({ ok: true, message: "Contraseña actualizada correctamente." });
   } catch (err) {
     console.error(err);

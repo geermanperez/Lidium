@@ -83,16 +83,38 @@ else
 fi
 
 # -----------------------------------------------------------------------------
-# 5. Actualizar worldGMS.properties con la IP publica del servidor
-#    SERVER_PUBLIC_IP es la IP que el LOGIN SERVER le envia al cliente
-#    para que sepa a donde conectarse para el canal.
-#    Si no se define, usa 127.0.0.1 (solo funciona en local).
+# 5. Validar y aplicar la IP publica del servidor.
+#    El protocolo v111 redirige con una IPv4 cruda; no acepta nombres DNS.
+#    Nunca usar localhost aqui: desde un jugador remoto apunta a su propia PC.
 # -----------------------------------------------------------------------------
 WORLD_PROPS="/app/worldGMS.properties"
-PUBLIC_IP="${SERVER_PUBLIC_IP:-127.0.0.1}"
+PUBLIC_IP="${SERVER_PUBLIC_IP:-}"
+
+if [ -z "${PUBLIC_IP}" ]; then
+    echo "[ERROR] Falta SERVER_PUBLIC_IP. Debe contener la IPv4 publica que usan los clientes."
+    exit 1
+fi
+
+if ! [[ "${PUBLIC_IP}" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+    echo "[ERROR] SERVER_PUBLIC_IP debe ser una IPv4, no un dominio: ${PUBLIC_IP}"
+    exit 1
+fi
+
+IFS='.' read -r -a PUBLIC_IP_OCTETS <<< "${PUBLIC_IP}"
+for OCTET in "${PUBLIC_IP_OCTETS[@]}"; do
+    if (( 10#${OCTET} > 255 )); then
+        echo "[ERROR] SERVER_PUBLIC_IP contiene un octeto invalido: ${PUBLIC_IP}"
+        exit 1
+    fi
+done
 
 if [ -f "${WORLD_PROPS}" ]; then
     sed -i "s|^net\.sf\.odinms\.channel\.net\.interface=.*|net.sf.odinms.channel.net.interface=${PUBLIC_IP}|g" "${WORLD_PROPS}"
+    if grep -q '^net\.sf\.odinms\.server\.publicIp=' "${WORLD_PROPS}"; then
+        sed -i "s|^net\.sf\.odinms\.server\.publicIp=.*|net.sf.odinms.server.publicIp=${PUBLIC_IP}|g" "${WORLD_PROPS}"
+    else
+        echo "net.sf.odinms.server.publicIp=${PUBLIC_IP}" >> "${WORLD_PROPS}"
+    fi
     echo "[OK] worldGMS.properties: interfaz publica actualizada a ${PUBLIC_IP}"
 fi
 
@@ -125,6 +147,7 @@ exec java \
     -server \
     ${JAVA_OPTS_FINAL} \
     -Dfile.encoding=UTF-8 \
+    -Dlatinms.publicIp="${PUBLIC_IP}" \
     -Dpolyglot.engine.WarnInterpreterOnly=false \
     -Dnet.sf.odinms.wzpath=wz/ \
     -cp "${CLASSPATH}" \
