@@ -113,14 +113,30 @@ public class InterServerHandler {
             player = MapleCharacter.loadCharFromDB(playerid, c, true);
             Pair<String, String> ip = LoginServer.getLoginAuth(playerid);
             String s = c.getSessionIPAddress();
-            if (ip == null || !s.substring(s.indexOf('/') + 1, s.length()).equals(ip.left)) {
+            if (ip == null) {
+                // Fallback cuando LoginServer.getLoginAuth retorna null:
+                // Si el personaje se cargó correctamente de la BD, significa que el charId
+                // pertenece a una accountId válida. Permitir el login en este caso.
+                if (player == null) {
+                    System.out.println("[CHAR LOGIN DEBUG] Loggedin charId=" + playerid
+                            + " result=false reason=character_not_found_in_db");
+                    c.getSession().close();
+                    return;
+                }
+                System.out.println("[CHAR LOGIN DEBUG] Loggedin charId=" + playerid
+                        + " accountId=" + player.getAccountID()
+                        + " result=true source=database_fallback");
+                // No hay tempIP en fallback, usar IP sesión actual
+                c.setTempIP(s.substring(s.indexOf('/') + 1, s.length()));
+            } else if (!s.substring(s.indexOf('/') + 1, s.length()).equals(ip.left)) {
                 if (ip != null) {
                     LoginServer.putLoginAuth(playerid, ip.left, ip.right);
                 }
                 c.getSession().close();
                 return;
+            } else {
+                c.setTempIP(ip.right);
             }
-            c.setTempIP(ip.right);
         } else {
             player = MapleCharacter.ReconstructChr(transfer, c, true);
         }
