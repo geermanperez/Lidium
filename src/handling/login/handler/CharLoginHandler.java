@@ -496,13 +496,12 @@ public class CharLoginHandler {
         final long bytesAtEntry = slea.available();
         System.out.println("[CHAR LOGIN DEBUG] handler=" + handler + " action=received bytesAvailable="
                 + bytesAtEntry + " haspic=" + haspic + " view=" + view);
+        System.out.println("[CHAR LOGIN DEBUG] handler=" + handler + " action=packetHex " + slea.toString(true));
         if (bytesAtEntry < 6) {
             logCharacterSelectionClose(handler, "insufficient packet bytes before character id: " + bytesAtEntry);
             c.getSession().close();
             return;
         }
-        slea.readByte(); // 1?
-        slea.readByte(); // 1?
         final int charId = slea.readInt();
         if (view) {
             c.setChannel(1);
@@ -572,7 +571,7 @@ public class CharLoginHandler {
         final boolean loginAuth = c.login_Auth(charId);
         final ChannelServer channelServer = ChannelServer.getInstance(c.getChannel());
         logCharacterSelectionDebug(handler, c, charId, true, bytesAtEntry, loggedIn, loginFailed, loginAuth, channelServer);
-        if (!loggedIn || loginFailed || !loginAuth || channelServer == null || c.getWorld() != 0) { // TODOO: MULTI WORLDS
+        if (!loggedIn || loginFailed || c.getSecondPassword() == null || !loginAuth || channelServer == null || c.getWorld() != 0) { // TODOO: MULTI WORLDS
             final String reason = !loggedIn ? "isLoggedIn=false"
                     : loginFailed ? "loginFailCount=true"
                     : !loginAuth ? "login_Auth=false"

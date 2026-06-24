@@ -468,7 +468,7 @@ public final class MapleMap {
         //This will not affect the internal state, and we don't want to
         //introduce unneccessary locking, especially since this function
         //is probably used quite often.
-        if (!instanced && mapobjects.get(MapleMapObjectType.ITEM).size() >= 250) {
+        if (!instanced && mapobjects.get(MapleMapObjectType.ITEM).size() >= 200) {
             removeDrops();
         }
 
